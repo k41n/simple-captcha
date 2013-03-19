@@ -55,7 +55,7 @@ module SimpleCaptcha #:nodoc
       options[:field_value] = set_simple_captcha_data(key, options)
 
       defaults = {
-          :image => simple_captcha_image(key, options),
+          #:image => simple_captcha_image(key, options),
           :label => options[:label] || I18n.t('simple_captcha.label'),
           :field => simple_captcha_field(options)
       }
@@ -65,9 +65,13 @@ module SimpleCaptcha #:nodoc
 
     def show_pregenerated_captcha
       captches = SimpleCaptcha::SimpleCaptchaData.count
-      if captches < (Rails.env.test? ? 1 : MIN_PREPARED_CAPTCHES)
+
+      return show_temp_captcha if Rails.env.test?
+
+      if captches < MIN_PREPARED_CAPTCHES
         return show_simple_captcha
       end
+
       offset = rand(captches)
       captcha = SimpleCaptcha::SimpleCaptchaData.first(:offset => offset)
       key = captcha.key
@@ -85,9 +89,9 @@ module SimpleCaptcha #:nodoc
     end
 
     def generate_captcha(options={})
-      key = simple_captcha_key(options[:object])
+      key = simple_captcha_key
       set_simple_captcha_data(key, options)
-      SimpleCaptcha::ImageHelpers.generate_simple_captcha_image(key)
+      SimpleCaptcha::ImageHelpers.generate_simple_captcha_image(key) unless Rails.env.test?
     end
 
     private
@@ -101,7 +105,8 @@ module SimpleCaptcha #:nodoc
       end
       
       def simple_captcha_field(options={})
-        html = {:autocomplete => 'off', :required => 'required'}
+        html = {:autocomplete => 'off'}
+        html.merge!({:required => 'required'}) unless Rails.env.test?
         html.merge!(options[:input_html] || {})
         html[:placeholder] = options[:placeholder] || I18n.t('simple_captcha.placeholder')
           
@@ -137,7 +142,7 @@ module SimpleCaptcha #:nodoc
         value
       end
 
-      def simple_captcha_key(key)
+      def simple_captcha_key(key = nil)
         Digest::MD5.hexdigest(Time.zone.now.to_f.to_s)
       end
   end
