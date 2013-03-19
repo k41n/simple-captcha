@@ -42,29 +42,62 @@ module SimpleCaptcha #:nodoc
     # Find more detailed examples with sample images here on my blog http://EXPRESSICA.com
     #
     # All Feedbacks/CommentS/Issues/Queries are welcome.
+
+    MIN_PREPARED_CAPTCHES = 50
+
     def show_simple_captcha(options={})
+      generate_captcha
+      show_pregenerated_captcha
+    end
+
+    def show_temp_captcha(options={})
       key = simple_captcha_key(options[:object])
       options[:field_value] = set_simple_captcha_data(key, options)
-      
+
       defaults = {
-         :image => simple_captcha_image(key, options),
-         :label => options[:label] || I18n.t('simple_captcha.label'),
-         :field => simple_captcha_field(options)
-         }
-         
+          :image => simple_captcha_image(key, options),
+          :label => options[:label] || I18n.t('simple_captcha.label'),
+          :field => simple_captcha_field(options)
+      }
+
+      render :partial => 'simple_captcha/simple_captcha', :locals => { :simple_captcha_options => defaults }
+    end
+
+    def show_pregenerated_captcha
+      captches = SimpleCaptcha::SimpleCaptchaData.count
+      if captches < (Rails.env.test? ? 1 : MIN_PREPARED_CAPTCHES)
+        return show_simple_captcha
+      end
+      offset = rand(captches)
+      captcha = SimpleCaptcha::SimpleCaptchaData.first(:offset => offset)
+      key = captcha.key
+      options = {}
+      options[:time] = Time.new(2002)
+      options[:field_value] = key
+
+      defaults = {
+          :image => simple_captcha_image(key, options),
+          :label => options[:label] || I18n.t('simple_captcha.label'),
+          :field => simple_captcha_field(options)
+      }
+
       render :partial => 'simple_captcha/simple_captcha', :locals => { :simple_captcha_options => defaults }
     end
 
     private
 
+      def generate_captcha(options={})
+        key = simple_captcha_key(options[:object])
+        set_simple_captcha_data(key, options)
+        SimpleCaptcha::ImageHelpers.generate_simple_captcha_image(key)
+      end
+
       def simple_captcha_image(simple_captcha_key, options = {})
         defaults = {}
         defaults[:time] = options[:time] || Time.now.to_i
-        
-        query = defaults.collect{ |key, value| "#{key}=#{value}" }.join('&')
-        url = "#{ENV['RAILS_RELATIVE_URL_ROOT']}/simple_captcha?code=#{simple_captcha_key}&#{query}"
-        
-        tag('img', :src => url, :alt => 'captcha')
+
+        url = '/captcha/' + simple_captcha_key + '.jpg'
+        image_tag(url, :alt => 'captcha')
       end
       
       def simple_captcha_field(options={})
@@ -101,15 +134,11 @@ module SimpleCaptcha #:nodoc
             SimpleCaptcha.length.times{value << (65 + rand(26)).chr}
         end
         
-        return value
+        value
       end
-      
-      def simple_captcha_key(key_name = nil)
-        if key_name.nil?
-          session[:captcha] ||= SimpleCaptcha::Utils.generate_key(session[:id].to_s, 'captcha')
-        else
-          SimpleCaptcha::Utils.generate_key(session[:id].to_s, key_name)
-        end
-      end 
+
+      def simple_captcha_key(key)
+        Digest::MD5.hexdigest(Time.zone.now.to_f.to_s)
+      end
   end
 end

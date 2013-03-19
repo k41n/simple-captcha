@@ -14,15 +14,21 @@ module SimpleCaptcha #:nodoc
     #   redirect_to :action => "myaction"
     #  end
     def simple_captcha_valid?
+      pregenerated_captcha_valid?
+    end
+
+    def pregenerated_captcha_valid?
       return true if Rails.env.test?
-      
       if params[:captcha]
-        data = SimpleCaptcha::Utils::simple_captcha_value(params[:captcha_key] || session[:captcha])
-        result = data == params[:captcha].delete(" ").upcase
-        SimpleCaptcha::Utils::simple_captcha_passed!(session[:captcha]) if result
-        return result
+        key = params[:captcha_key]
+        data = SimpleCaptcha::Utils::simple_captcha_value(key || session[:captcha])
+        result = data == params[:captcha].delete(' ').upcase
+        if result
+          SimpleCaptcha::SimpleCaptchaData.remove_data(key)
+        end
+        result
       else
-        return false
+        false
       end
     end
   end

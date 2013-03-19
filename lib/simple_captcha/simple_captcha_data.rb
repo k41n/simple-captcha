@@ -13,20 +13,19 @@ module SimpleCaptcha
     end
     
     attr_accessible :key, :value
-    
+    before_destroy :remove_image
+
+    def remove_image
+      File.delete(Rails.root.to_s + '/public/captcha/' + key + '.jpg')
+    end
+
     class << self
       def get_data(key)
-        data = find_by_key(key) || new(:key => key)
+        find_by_key(key) || new(:key => key)
       end
-      
+
       def remove_data(key)
-        delete_all(["#{connection.quote_column_name(:key)} = ?", key])
-        clear_old_data(1.hour.ago)
-      end
-      
-      def clear_old_data(time = 1.hour.ago)
-        return unless Time === time
-        delete_all(["#{connection.quote_column_name(:updated_at)} < ?", time])
+        destroy_all(["#{connection.quote_column_name(:key)} = ?", key])
       end
     end
   end
