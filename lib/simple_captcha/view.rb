@@ -103,13 +103,13 @@ module SimpleCaptcha #:nodoc
         url = '/captcha/' + simple_captcha_key + '.jpg'
         image_tag(url, :alt => 'captcha')
       end
-      
+
       def simple_captcha_field(options={})
         html = {:autocomplete => 'off'}
         html.merge!({:required => 'required'}) unless Rails.env.test?
         html.merge!(options[:input_html] || {})
         html[:placeholder] = options[:placeholder] || I18n.t('simple_captcha.placeholder')
-          
+
         if options[:object]
           text_field(options[:object], :captcha, html.merge(:value => '')) +
           hidden_field(options[:object], :captcha_key, {:value => options[:field_value]})
@@ -121,24 +121,24 @@ module SimpleCaptcha #:nodoc
 
       def set_simple_captcha_data(key, options={})
         code_type = options[:code_type]
-        
+
         value = generate_simple_captcha_data(code_type)
         data = SimpleCaptcha::SimpleCaptchaData.get_data(key)
         data.value = value
         data.save
         key
       end
-   
+
       def generate_simple_captcha_data(code)
         value = ''
-        
-        case code
-          when 'numeric' then 
-            SimpleCaptcha.length.times{value << (48 + rand(10)).chr}
-          else
-            SimpleCaptcha.length.times{value << (65 + rand(26)).chr}
-        end
-        
+
+        # case code
+        #   when 'numeric' then
+        SimpleCaptcha.length.times{value << (48 + rand(10)).chr}
+        #   else
+        #     SimpleCaptcha.length.times{value << (65 + rand(26)).chr}
+        # end
+
         value
       end
 
