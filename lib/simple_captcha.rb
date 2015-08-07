@@ -10,13 +10,6 @@ module SimpleCaptcha
   autoload :FormBuilder,       'simple_captcha/form_builder'
   autoload :CustomFormBuilder, 'simple_captcha/formtastic'
 
-  if defined?(ActiveRecord)
-    autoload :ModelHelpers,      'simple_captcha/active_record'
-    autoload :SimpleCaptchaData, 'simple_captcha/simple_captcha_data'
-  else
-    autoload :SimpleCaptchaData,      'simple_captcha/simple_captcha_data_mongoid.rb'
-  end
-
 
   autoload :Middleware,        'simple_captcha/middleware'
 
@@ -56,6 +49,23 @@ module SimpleCaptcha
 
   def self.setup
     yield self
+  end
+
+  class << self
+    def store
+      @store || 'active_record'
+    end
+
+    def store=(type)
+      @store = type
+      if type == 'redis'
+        instance_eval %q{
+          mattr_accessor :redis, :expire
+          @@redis = nil
+          @@expire = 3600
+        }
+      end
+    end
   end
 end
 
